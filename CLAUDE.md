@@ -2,22 +2,36 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Status
+## Project Overview
 
-This is a new project repository. No application code has been added yet.
+**NotAHotDog** - A Python demo/test project. Simple console application that accepts user input.
 
-## Multi-Agent Workflow System
+## Tech Stack
 
-This repository uses a `.dagent` multi-agent orchestration system with specialized agents:
+- Python 3.x
+- Console-based interface (stdin/stdout)
 
-- **PM Agent**: Manages feature specs and tasks. Always updates the spec before creating tasks. Uses DAG-based task management with automatic dependency handling.
-- **Developer Agent**: Implements tasks in isolated git worktrees. Focuses only on assigned task scope, not broader feature work.
-- **QA Agent**: Reviews code changes against task specifications only (not broader feature). Automatic fail if code references `.dagent/` paths.
-- **Merge Agent**: Handles branch integration and merge conflict resolution.
+## Build & Development Commands
 
-## Key Conventions
+```bash
+# Run the application
+python main.py
 
-- Tasks work in isolated git worktrees (`.dagent-worktrees/`)
-- Attachments in `.dagent/attachments/` are git-ignored - never reference these paths in code; copy assets to project folders instead
-- Feature specs are the source of truth; requirements need matching acceptance criteria
-- Task dependencies form a DAG (directed acyclic graph) - cycles are prevented
+# Run with specific Python version if needed
+python3 main.py
+```
+
+## Project Structure
+
+```
+NotAHotDog/
+├── main.py          # Entry point (to be created)
+└── CLAUDE.md        # This file
+```
+
+## Code Conventions
+
+- Keep it simple - this is a demo/test project
+- Use standard Python conventions (PEP 8)
+- Console input via `input()` function
+- Clear user prompts for interactive elements
