@@ -178,7 +178,7 @@ def get_data_loaders(data_path):
     # Scan through dataset to categorize by class
     # Note: This is slow but only done once
     for idx in tqdm(range(len(food101_train)), desc="Scanning dataset"):
-        _, label = food101_train.samples[idx]  # Get label without loading image
+        label = food101_train._labels[idx]  # Get label without loading image
         if label == HOT_DOG_CLASS_INDEX:
             hot_dog_indices.append(idx)
         else:
