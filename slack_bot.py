@@ -285,36 +285,46 @@ def handle_file_shared(event):
     """
     file_id = event.get("file_id")
     channel_id = event.get("channel_id")
+    print(f"[DEBUG] file_shared event: file_id={file_id}, channel_id={channel_id}")
+    print(f"[DEBUG] Full event: {event}")
 
     if not file_id or not channel_id:
-        return  # Silent
+        print("[DEBUG] Missing file_id or channel_id, skipping")
+        return
 
-    # Check if bot is in the channel
-    if not is_bot_in_channel(channel_id):
-        return  # Silent - not invited to this channel
+    # # Check if bot is in the channel (disabled - needs channels:read scope)
+    # if not is_bot_in_channel(channel_id):
+    #     print(f"[DEBUG] Bot not in channel {channel_id}, skipping")
+    #     return
 
     # Get file info
     file_info = get_file_info(file_id)
     if not file_info:
-        return  # Silent
+        print("[DEBUG] Could not get file info, skipping")
+        return
 
     # Check if it's an image
     mimetype = file_info.get("mimetype", "")
     if not mimetype.startswith("image/"):
-        return  # Silent - not an image
+        print(f"[DEBUG] Not an image: {mimetype}, skipping")
+        return
 
     # Get download URL (use url_private_download for best quality)
     download_url = file_info.get("url_private_download") or file_info.get("url_private")
     if not download_url:
-        return  # Silent
+        print("[DEBUG] No download URL, skipping")
+        return
 
     # Download the image
+    print(f"[DEBUG] Downloading image from {download_url}")
     image = download_image(download_url)
     if not image:
-        return  # Silent
+        print("[DEBUG] Failed to download image, skipping")
+        return
 
     # Classify the image
     is_hot_dog = classify_image(image)
+    print(f"[DEBUG] Classification result: {'Hot Dog' if is_hot_dog else 'Not a Hot Dog'}")
 
     # Send result (only output - classification result)
     if is_hot_dog:

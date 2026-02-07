@@ -18,6 +18,7 @@ The script will:
 
 import argparse
 import os
+import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -32,11 +33,11 @@ from model import HotDogClassifier
 # HYPERPARAMETERS (hardcoded with sensible defaults for learning)
 # =============================================================================
 
-EPOCHS = 10          # Number of complete passes through the dataset
+EPOCHS = 10          # Fewer epochs needed with pretrained model
 BATCH_SIZE = 32      # Number of images processed before updating weights
-LEARNING_RATE = 0.001  # Step size for optimizer (Adam default)
+LEARNING_RATE = 0.0001  # Lower LR for fine-tuning pretrained weights
 VAL_SPLIT = 0.2      # 20% of data for validation
-NUM_WORKERS = 4      # Parallel data loading workers
+NUM_WORKERS = 4      # Parallel data loading threads
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hot dog is class 55 in Food-101 (0-indexed alphabetically)
@@ -44,7 +45,7 @@ HOT_DOG_CLASS_INDEX = 55
 
 # How many negative samples to use (for balanced dataset)
 # Food-101 has ~1000 images per class, we'll sample similar amount of negatives
-NEGATIVE_SAMPLES_PER_CLASS = 100  # From each non-hot-dog class
+NEGATIVE_SAMPLES_PER_CLASS = 8  # From each non-hot-dog class (~800 total to match ~750 hot dogs)
 
 
 # =============================================================================
@@ -240,6 +241,37 @@ def get_data_loaders(data_path):
 
 
 # =============================================================================
+# WEIGHTED LOSS FUNCTION
+# =============================================================================
+
+class WeightedBCELoss(nn.Module):
+    """
+    Binary Cross Entropy with class weighting for imbalanced datasets.
+
+    Applies higher weight to positive samples (hot dogs) to counteract
+    class imbalance where negatives vastly outnumber positives.
+    """
+
+    def __init__(self, pos_weight):
+        super().__init__()
+        self.pos_weight = pos_weight
+
+    def forward(self, outputs, targets):
+        # BCE = -[y*log(p) + (1-y)*log(1-p)]
+        # Weighted BCE = -[pos_weight*y*log(p) + (1-y)*log(1-p)]
+        # This penalizes missing hot dogs more than false positives
+
+        # Clamp outputs to avoid log(0)
+        outputs = torch.clamp(outputs, min=1e-7, max=1-1e-7)
+
+        # Weighted binary cross entropy
+        loss = -(self.pos_weight * targets * torch.log(outputs) +
+                 (1 - targets) * torch.log(1 - outputs))
+
+        return loss.mean()
+
+
+# =============================================================================
 # TRAINING FUNCTIONS
 # =============================================================================
 
@@ -263,17 +295,17 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device):
     running_loss = 0.0
     correct = 0
     total = 0
+    num_batches = len(train_loader)
 
-    # Progress bar for batches
-    progress_bar = tqdm(train_loader, desc="Training", leave=False)
-
-    for images, labels in progress_bar:
+    print("  Loading first batch...", flush=True)
+    for batch_idx, (images, labels) in enumerate(train_loader):
+        if batch_idx == 0:
+            print("  First batch loaded!", flush=True)
         # Move data to device (GPU if available)
         images = images.to(device)
         labels = labels.to(device)
 
         # Zero gradients from previous batch
-        # (PyTorch accumulates gradients by default)
         optimizer.zero_grad()
 
         # Forward pass: compute predictions
@@ -296,11 +328,10 @@ def train_one_epoch(model, train_loader, criterion, optimizer, device):
         correct += (predictions == labels).sum().item()
         total += labels.size(0)
 
-        # Update progress bar
-        progress_bar.set_postfix({
-            "loss": f"{loss.item():.4f}",
-            "acc": f"{100 * correct / total:.1f}%"
-        })
+        # Print progress every 10 batches
+        if (batch_idx + 1) % 10 == 0 or batch_idx == 0:
+            acc = 100 * correct / total
+            print(f"  Batch {batch_idx + 1}/{num_batches} - Loss: {loss.item():.4f}, Acc: {acc:.1f}%", flush=True)
 
     avg_loss = running_loss / total
     accuracy = correct / total
@@ -328,11 +359,11 @@ def validate(model, val_loader, criterion, device):
     correct = 0
     total = 0
 
+    print("  Validating...", flush=True)
+
     # No gradients needed for validation (saves memory and computation)
     with torch.no_grad():
-        progress_bar = tqdm(val_loader, desc="Validating", leave=False)
-
-        for images, labels in progress_bar:
+        for images, labels in val_loader:
             images = images.to(device)
             labels = labels.to(device)
 
@@ -405,7 +436,7 @@ def main():
     print(f"Trainable parameters: {trainable_params:,}")
 
     # Loss function: Binary Cross Entropy
-    # Good for binary classification where model outputs probabilities
+    # Data is now balanced so no weighting needed
     criterion = nn.BCELoss()
 
     # Optimizer: Adam (adaptive learning rate, works well in most cases)
