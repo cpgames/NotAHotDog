@@ -2,3 +2,6 @@
 .dagent/
 .attachments/
 data/
+__pycache__/
+*.pyc
+*.pyo

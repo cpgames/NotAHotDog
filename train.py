@@ -8,13 +8,15 @@ This script handles the complete training process:
 
 Usage:
     python train.py
+    python train.py --data-path /path/to/food-101
 
 The script will:
-- Download Food-101 dataset if not present (to ./data)
+- Load Food-101 dataset from specified path (or download to ./data)
 - Train for specified epochs with progress bars
 - Save best model (lowest val loss) and final model to ./weights
 """
 
+import argparse
 import os
 import torch
 import torch.nn as nn
@@ -43,6 +45,24 @@ HOT_DOG_CLASS_INDEX = 55
 # How many negative samples to use (for balanced dataset)
 # Food-101 has ~1000 images per class, we'll sample similar amount of negatives
 NEGATIVE_SAMPLES_PER_CLASS = 100  # From each non-hot-dog class
+
+
+# =============================================================================
+# ARGUMENT PARSING
+# =============================================================================
+
+def parse_args():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Train the HotDogClassifier on Food-101 dataset"
+    )
+    parser.add_argument(
+        "--data-path",
+        type=str,
+        default="./data",
+        help="Path to the data directory containing Food-101 dataset (default: ./data)"
+    )
+    return parser.parse_args()
 
 
 # =============================================================================
@@ -87,15 +107,19 @@ class HotDogDataset(Dataset):
         return image, torch.tensor([label], dtype=torch.float32)
 
 
-def get_data_loaders():
+def get_data_loaders(data_path):
     """
     Create training and validation data loaders.
+
+    Args:
+        data_path: Path to the data directory containing Food-101 dataset
 
     Returns:
         train_loader: DataLoader for training
         val_loader: DataLoader for validation
     """
     print("Setting up data loaders...")
+    print(f"Data path: {data_path}")
 
     # Define image transformations
     # Training: includes data augmentation to improve generalization
@@ -130,14 +154,14 @@ def get_data_loaders():
     # Or we can apply transforms in our custom dataset
     # For simplicity, we'll load with train transform and handle val separately
     food101_train = datasets.Food101(
-        root="./data",
+        root=data_path,
         split="train",
         download=True,
         transform=train_transform
     )
 
     food101_val = datasets.Food101(
-        root="./data",
+        root=data_path,
         split="train",  # We'll split training data ourselves
         download=True,
         transform=val_transform
@@ -154,7 +178,7 @@ def get_data_loaders():
     # Scan through dataset to categorize by class
     # Note: This is slow but only done once
     for idx in tqdm(range(len(food101_train)), desc="Scanning dataset"):
-        _, label = food101_train.samples[idx]  # Get label without loading image
+        label = food101_train._labels[idx]  # Get label without loading image
         if label == HOT_DOG_CLASS_INDEX:
             hot_dog_indices.append(idx)
         else:
@@ -353,6 +377,9 @@ def save_checkpoint(model, filepath, message=None):
 
 def main():
     """Main training function."""
+    # Parse command-line arguments
+    args = parse_args()
+
     print("=" * 60)
     print("HotDogClassifier Training Pipeline")
     print("=" * 60)
@@ -360,10 +387,11 @@ def main():
     print(f"Epochs: {EPOCHS}")
     print(f"Batch size: {BATCH_SIZE}")
     print(f"Learning rate: {LEARNING_RATE}")
+    print(f"Data path: {args.data_path}")
     print("=" * 60)
 
     # Get data loaders
-    train_loader, val_loader = get_data_loaders()
+    train_loader, val_loader = get_data_loaders(args.data_path)
 
     # Initialize model
     print("\nInitializing model...")
