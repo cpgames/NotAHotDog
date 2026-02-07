@@ -4,6 +4,10 @@ CNN Model for Hot Dog Classification
 A simple Convolutional Neural Network that classifies images as
 "hot dog" or "not hot dog". This is a learning project with explicit,
 well-commented code to understand CNN fundamentals.
+
+This module defines the neural network architecture used for classifying images.
+The network uses a standard CNN pattern: convolutional layers for feature extraction
+followed by fully connected layers for classification.
 """
 
 import torch

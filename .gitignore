@@ -1,3 +1,7 @@
 .dagent-worktrees/
 .dagent/
 .attachments/
+data/
+__pycache__/
+*.pyc
+*.pyo
