@@ -2,22 +2,53 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Status
+## Project Overview
 
-This is a new project repository. No application code has been added yet.
+**NotAHotDog** - A simple PyTorch CNN image classifier that determines if an image contains a hot dog or not. Learning project focused on understanding CNN fundamentals.
 
-## Multi-Agent Workflow System
+## Tech Stack
 
-This repository uses a `.dagent` multi-agent orchestration system with specialized agents:
+- Python 3.x
+- PyTorch (CNN implementation)
+- torchvision (image transforms, datasets)
+- PIL/Pillow (image loading)
 
-- **PM Agent**: Manages feature specs and tasks. Always updates the spec before creating tasks. Uses DAG-based task management with automatic dependency handling.
-- **Developer Agent**: Implements tasks in isolated git worktrees. Focuses only on assigned task scope, not broader feature work.
-- **QA Agent**: Reviews code changes against task specifications only (not broader feature). Automatic fail if code references `.dagent/` paths.
-- **Merge Agent**: Handles branch integration and merge conflict resolution.
+## Build & Development Commands
 
-## Key Conventions
+```bash
+# Run classifier on an image
+python main.py <image_path>
 
-- Tasks work in isolated git worktrees (`.dagent-worktrees/`)
-- Attachments in `.dagent/attachments/` are git-ignored - never reference these paths in code; copy assets to project folders instead
-- Feature specs are the source of truth; requirements need matching acceptance criteria
-- Task dependencies form a DAG (directed acyclic graph) - cycles are prevented
+# Train the model
+python train.py
+
+# Install dependencies
+pip install torch torchvision pillow
+```
+
+## Project Structure
+
+```
+NotAHotDog/
+├── main.py          # CLI entry point - classify an image
+├── train.py         # Training script
+├── model.py         # CNN architecture definition
+├── data/            # Training data (hot dog / not hot dog images)
+├── weights/         # Saved model weights
+└── CLAUDE.md        # This file
+```
+
+## Architecture
+
+Simple CNN with:
+- 2-3 convolutional layers
+- Max pooling
+- Fully connected layers
+- Binary classification output (hot dog vs not hot dog)
+
+## Code Conventions
+
+- Keep it simple - this is a learning project
+- Use standard Python conventions (PEP 8)
+- Clear comments explaining CNN concepts
+- Explicit PyTorch code (no magic, show what's happening)
